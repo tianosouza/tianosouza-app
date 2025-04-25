@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   redis:
     container_name: tianosouza-redis
@@ -31,13 +33,40 @@ services:
     command: bundle exec rails s -b 0.0.0.0 -p 3000
     volumes:
       - .:/app
-    ports:
-      - "4002:4002"
+    expose:
+      - "3000"  # substitui o 'ports', pois agora o acesso é via Nginx
     depends_on:
       - db
       - redis
     env_file:
       - .env
+    environment:
+      - RAILS_ENV=production
+      - RACK_ENV=production
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    container_name: tianosouza-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    depends_on:
+      - web
+    networks:
+      - app-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: tianosouza-certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
     networks:
       - app-network
 
@@ -48,3 +77,4 @@ volumes:
 networks:
   app-network:
     driver: bridge
+
